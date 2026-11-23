@@ -1,1 +1,77 @@
-const form=document.querySelector("#taskForm"),input=document.querySelector("#taskInput"),list=document.querySelector("#tasks"),empty=document.querySelector("#empty");let tasks=JSON.parse(localStorage.getItem("tasks")||"[]");function render(){list.replaceChildren();tasks.forEach((task,i)=>{const li=document.createElement("li");if(task.done)li.classList.add("done");const check=document.createElement("input");check.type="checkbox";check.checked=task.done;check.addEventListener("change",()=>{tasks[i].done=check.checked;save()});const label=document.createElement("span");label.textContent=task.text;const del=document.createElement("button");del.textContent="Delete";del.className="delete";del.addEventListener("click",()=>{tasks.splice(i,1);save()});li.append(check,label,del);list.append(li)});empty.hidden=tasks.length>0}function save(){localStorage.setItem("tasks",JSON.stringify(tasks));render()}form.addEventListener("submit",e=>{e.preventDefault();const text=input.value.trim();if(!text)return;tasks.push({text,done:false});input.value="";save()});render();
+const form = document.querySelector("#taskForm");
+const input = document.querySelector("#taskInput");
+const list = document.querySelector("#tasks");
+const empty = document.querySelector("#empty");
+const STORAGE_KEY = "tasks";
+
+function loadTasks() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return Array.isArray(saved)
+      ? saved.filter(task => task && typeof task.text === "string")
+        .map(task => ({ text: task.text, done: Boolean(task.done) }))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+let tasks = loadTasks();
+
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  } catch {
+    if (empty) empty.textContent = "Storage is unavailable. Your tasks may not be saved.";
+  }
+  render();
+}
+
+function render() {
+  if (!list) return;
+  list.replaceChildren();
+
+  tasks.forEach((task, index) => {
+    const item = document.createElement("li");
+    if (task.done) item.classList.add("done");
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = task.done;
+    checkbox.setAttribute("aria-label", `Mark ${task.text} as complete`);
+    checkbox.addEventListener("change", () => {
+      tasks[index].done = checkbox.checked;
+      save();
+    });
+
+    const label = document.createElement("span");
+    label.textContent = task.text;
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Delete";
+    remove.className = "delete";
+    remove.setAttribute("aria-label", `Delete ${task.text}`);
+    remove.addEventListener("click", () => {
+      tasks.splice(index, 1);
+      save();
+    });
+
+    item.append(checkbox, label, remove);
+    list.append(item);
+  });
+
+  if (empty) empty.hidden = tasks.length > 0;
+}
+
+form?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const text = input?.value.trim();
+  if (!text) return;
+  tasks.push({ text, done: false });
+  input.value = "";
+  save();
+  input.focus();
+});
+
+render();
